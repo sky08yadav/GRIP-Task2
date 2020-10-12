@@ -1,0 +1,105 @@
+---
+title: "Task1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+data <- read.csv("task1.csv")
+head(data)
+```
+
+
+#Lets visualize the data to get an better understanding...
+1. Scatter Plot
+```{r }
+ggplot(data,aes(Hours,Scores))+
+  geom_point()
+```
+
+2. Smooth & Line plot
+```{r}
+ ggplot(data,aes(Hours,Scores))+
+  geom_line()+
+  geom_smooth()
+
+```
+
+From above two graph it is pretty clear that the relationship between the Hours and Scores is positive.
+Now lets check if there are any outliers, for that we will create boxplot.
+
+3. Boxplot
+
+```{r }
+ggplot(data)+
+  geom_boxplot(aes("",Hours))
+```
+
+```{r }
+ggplot(data)+
+  geom_boxplot(aes("",Scores))
+```
+
+From the boxplots above we can see there are no outliers present.
+
+We have seen the relationship between the variables using visualization, Now lets see it numerically...
+
+```{r}
+cor(data$Hours,data$Scores)
+```
+#cor() provide us with correlational value...which in our case is 0.9761907
+#which is pretty high and which shows a positive relationship.
+
+Now that we have seen the relationship numerically and graphically...Lets build an linear model.
+Create Training and Test data -
+
+```{r}
+set.seed(123)
+trainingRowIndex <- sample(1:nrow(data), 0.7*nrow(data))  # row indices for training data
+trainingData <- data[trainingRowIndex, ]  # model training data
+testData  <- data[-trainingRowIndex, ]   # test data
+```
+
+```{r}
+lmMod <- lm(Scores ~ Hours, data=trainingData)  # build the model
+scorePred <- predict(lmMod, testData)  # predict score
+summary(lmMod)
+```
+
+```{r}
+actuals_preds <- data.frame(cbind(actuals=testData$Scores, predicteds=scorePred))  # make actuals_predicteds dataframe.
+correlation_accuracy <- cor(actuals_preds)
+correlation_accuracy
+```
+
+```{r}
+head(actuals_preds)
+```
+
+Min-Max Accuracy Calculation
+```{r}
+min_max_accuracy <- mean(apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))  
+min_max_accuracy
+```
+# So the min-max accuracy is 90%, which is pretty good. 
+
+Mean absolute percentage deviation Calculation
+```{r}
+mape <- mean(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals)
+mape
+```
+#And the Mean absolute percentage deviation is 11%.
+
+Now here we have the measure of accuracy which is at 90%, which is high and 
+mean absolute predcition deviation is 11.8%, which is low,
+And this shows our model is prediction is goog enough.
+
+
+And now to find the answer for the question, What will be predicted score if a student studies for 9.25 hrs/ day?
+            
+```{r}
+hour <- data.frame(Hours = 9.25)
+predict(lmMod,hour)
+```
+ 
+So according to my prrdiciton when a student studies for 9.25 hours/day he might get 95.42%.
