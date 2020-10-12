@@ -1,0 +1,102 @@
+---
+title: "Task2-Finding optimal no. of clusters using unsupervised learning"
+output: html_document
+---
+
+Importing Required libraries:
+
+```{r}
+library(cluster.datasets)
+library(tidyverse)
+library(gridExtra)
+library(cluster)
+library(factoextra)
+library(GGally)
+library(plotly)
+```
+
+Reading and checking data :
+```{r}
+data <- read.csv("Iris.csv")
+head(data)
+```
+ 
+ Visualising data w.r.t every attribute.
+ 
+```{r}
+plot1 <- data %>% 
+  ggplot(aes(x = Species, y = SepalLengthCm)) + 
+  geom_jitter(width = .025, height = 0, size = 2, alpha = .5, color = "blue") +
+  labs(x = "", y="Sepal Lenght")
+
+
+plot2 <-  data %>%
+  ggplot(aes(x = Species, y = SepalWidthCm)) + 
+  geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "orange") +
+  labs(x = "", y="Sepal Width")
+
+plot3 <-  data %>%
+  ggplot(aes(x = Species, y = PetalLengthCm)) + 
+  geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "green") +
+  labs(x = "", y="petal length")
+
+plot4 <-  data %>%
+  ggplot(aes(x = Species, y = PetalWidthCm)) + 
+  geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "red") +
+  labs(x = "", y="petal width")
+
+grid.arrange(plot1, plot2, plot3, plot4)
+```
+
+Using Kmeans, lets take k=3.
+
+```{r}
+set.seed(23)
+input <- data[,2:5]
+clustering <- kmeans(input, centers = 3, nstart = 20)
+clustering
+```
+
+With these, 3 clusters are formed with sizes 50,38 and 62 and (between_SS / total_SS =  88.4 %) which is good but lets check further.
+
+```{r}
+wssplot <- function(data, nc=15, seed=123){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of groups",
+       ylab="Sum of squares within a group")}
+
+wssplot(input, nc = 20)
+```
+By Analysing the chart from right to left, we can see that when the number of groups (K) reduces from 3 to 2 there is a big increase in the sum of squares, bigger than any other previous increase. That means that when it passes from 3 to 2 groups there is a reduction in the clustering compactness (by compactness, I mean the similarity within a group).
+
+
+Lets use Silhouette coefficient to evaluate goodness of clustering.
+Silhouette Method:
+
+```{r}
+sil <- silhouette(clustering$cluster, dist(input))
+```
+
+The silhouette plot below gives us evidence that our clustering using 3 groups is good because there’s no negative silhouette width and most of the values are bigger than 0.5.
+
+```{r}
+fviz_silhouette(sil)
+```
+
+```{r}
+data$cluster <- as.factor(clustering$cluster)
+data
+```
+
+```{r}
+ggplot(data)+
+  geom_point(aes(Id,SepalLengthCm,col = "Species"))
+p <- ggparcoord(data = data, columns = c(2:5), groupColumn = "cluster", scale = "std") + labs(x = "Iris Properties", y = "value (in standard-deviation units)", title = "Clustering")
+ggplotly(p)
+```
+
+As we can see in the plot above, observations within the same group tend to have similar characteristics.
+So from analysis these is safe to say the optimal no.of clusters for the given data is 3.
